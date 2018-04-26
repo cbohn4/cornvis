@@ -20,12 +20,13 @@ public class DataRetriever : MonoBehaviour {
     public int useRandom;
     private Dictionary<string, string> jobsDict = new Dictionary<string, string>();
     private Dictionary<string, string> tempDict = new Dictionary<string, string>();
-    static int side = 20;
+    static int side = 49;
     float xCord = side * -1;
     float zCord = side * -1;
     
     // Use this for initialization
     void Start() {
+        /**
         string batchPath = Application.dataPath + "\\getData.bat";
         File.Delete(batchPath);
         StreamWriter writer = new StreamWriter(batchPath, true);
@@ -35,7 +36,7 @@ public class DataRetriever : MonoBehaviour {
         //writer = new StreamWriter(Application.dataPath+"\\jobs.csv", true);
         //writer.WriteLine("LIFE");
         //writer.Close();
-        //System.Threading.Thread.Sleep(2000);
+        //System.Threading.Thread.Sleep(2000);**/
 
 
         cam2.enabled = false;
@@ -49,7 +50,7 @@ public class DataRetriever : MonoBehaviour {
 
 
         InvokeRepeating("updateCorn", 5.0f, 5.0f);
-        //InvokeRepeating("rotation", 0.1f, 0.01f);
+        InvokeRepeating("rotation", 0.1f, 0.01f);
 
 
     }
@@ -67,7 +68,7 @@ public class DataRetriever : MonoBehaviour {
     }
 
 
-    private float k, h;
+    private float k;
 
     private void Update()
     {
@@ -134,7 +135,7 @@ public class DataRetriever : MonoBehaviour {
         
         {
             k = Random.Range(kMin, kMax);
-            h = Random.Range(0.0f, 5.0f);
+            
             
             if (useRandom == 1)
             {
@@ -168,21 +169,21 @@ public class DataRetriever : MonoBehaviour {
     {
         //Process.Start("startData.bat");
 
-        Process myProcess = new Process();
-        try
-        {
-            myProcess.StartInfo.UseShellExecute = false;
-            myProcess.StartInfo.FileName = Application.dataPath + "\\getData.bat";
+        //Process myProcess = new Process();
+       // try
+       // {
+            //myProcess.StartInfo.UseShellExecute = false;
+            //myProcess.StartInfo.FileName = Application.dataPath + "\\getData.bat";
             //myProcess.StartInfo.FileName = "C:\\cygwin64\\bin\\ssh root@crane-head -i cornFieldKey > " + Application.dataPath + "\\jobs.csv";
             //UnityEngine.Debug.Log("C:\\cygwin64\\bin\\ssh root@crane-head -i cornFieldKey > " + Application.dataPath + "\\jobs.csv");
-            myProcess.StartInfo.CreateNoWindow = true;
-            myProcess.Start();
+            //myProcess.StartInfo.CreateNoWindow = true;
+           // myProcess.Start();
 
-        }
-        catch
-        {
-            UnityEngine.Debug.Log("Error in getting data.");
-        }
+        //}
+        //catch
+        //{
+           // UnityEngine.Debug.Log("Error in getting data.");
+        //}
 
 
         try
