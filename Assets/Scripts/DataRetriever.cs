@@ -1,21 +1,27 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 //using Microsoft.VisualBasic.FileIO;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
 
 
+
+
 public class DataRetriever : MonoBehaviour {
 
     public GameObject cornPrefab;
-
+    System.TimeSpan time = System.DateTime.Now.TimeOfDay;
     public float spacing;
+    
     public Camera cam1;
     public Camera cam2;
     public Camera cam3;
+    public Camera sunCam;
     public float kMin;
+    public float xPos = 0;
     public float kMax;
     public int useRandom;
     private Dictionary<string, string> jobsDict = new Dictionary<string, string>();
@@ -23,6 +29,9 @@ public class DataRetriever : MonoBehaviour {
     static int side = 49;
     float xCord = side * -1;
     float zCord = side * -1;
+    private Vector3 point = new Vector3 (0,0,0);
+    float h;
+    
     
     // Use this for initialization
     void Start() {
@@ -37,8 +46,9 @@ public class DataRetriever : MonoBehaviour {
         //writer.WriteLine("LIFE");
         //writer.Close();
         //System.Threading.Thread.Sleep(2000);**/
-
-
+        respawnCorn();
+        updateSun();
+        sunCam.enabled = false;
         cam2.enabled = false;
         cam3.enabled = false;
         cam1.enabled = true;
@@ -60,25 +70,127 @@ public class DataRetriever : MonoBehaviour {
         rotator.transform.Rotate(0, 0.05f, 0);
     }
 
-    private void resetCorn()
+    void respawnCorn()
+
     {
+        jobsDict.Clear();
+        tempDict.Clear();
         GameObject[] cornPlants = GameObject.FindGameObjectsWithTag("Corn");
         foreach (GameObject corn in cornPlants)
+        {
+            
             GameObject.Destroy(corn);
+
+        }
+        string[] tempArray;
+        try
+        {
+            var lines = File.ReadAllLines(Application.dataPath + "\\respawn.csv");
+            foreach (var line in lines)
+            {
+                tempArray = line.Split(',');
+                //Debug.Log(tempStringArray[1]);
+                if (!jobsDict.ContainsKey(tempArray[0]))
+                {
+                    //Debug.Log("Job added: " + line);
+                    jobsDict.Add(tempArray[0], "RUNNING");
+                    h = float.Parse(tempArray[1]);
+                    SpawnCorn(tempArray[0], h);
+                }
+                tempDict.Add(tempArray[0], "RUNNING");
+
+
+            }
+            for (int i = jobsDict.Count - 1; i >= 0; i--)
+            {
+                var item = jobsDict.ElementAt(i);
+                var itemKey = item.Key;
+                if (!tempDict.ContainsKey(itemKey))
+                {
+                    jobsDict[itemKey] = "COMPLETED";
+                }
+            }
+        }
+        catch
+        {
+            UnityEngine.Debug.Log("Error reading file - Respawn");
+        }
+        tempDict.Clear();
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private void resetCorn()
+    {
+        jobsDict.Clear();
+        tempDict.Clear();
+        xCord = side * -1;
+        zCord = side * -1;
+        File.Delete(Application.dataPath + "\\respawn.csv");
+        StreamWriter writer = new StreamWriter(Application.dataPath + "\\respawn.csv", true);
+        
+        GameObject[] cornPlants = GameObject.FindGameObjectsWithTag("Corn");
+        foreach (GameObject corn in cornPlants)
+        {
+            writer.WriteLine(corn.name + "," + corn.transform.localScale.y);
+            //UnityEngine.Debug.Log(corn.transform.localScale.y);
+            GameObject.Destroy(corn);
+
+        }
+        writer.Close();
+        //respawnCorn();
     }
 
 
     private float k;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     private void Update()
     {
         
         if (Input.GetKeyDown(KeyCode.R)){
             resetCorn();
-            //Debug.Log("Corn Reset");
+           // UnityEngine.Debug.Log("Corn Reset");
+        }
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            respawnCorn();
+           // UnityEngine.Debug.Log("Corn Respawn");
         }
         if (Input.GetKeyDown(KeyCode.A))
         {
+            sunCam.enabled = false;
             cam1.enabled = true;
             cam2.enabled = false;
             cam3.enabled = false;
@@ -86,22 +198,49 @@ public class DataRetriever : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.S))
         {
             cam1.enabled = false;
+            sunCam.enabled = false;
             cam2.enabled = true;
             cam3.enabled = false;
         }
         if (Input.GetKeyDown(KeyCode.D))
         {
+            sunCam.enabled = false;
             cam1.enabled = false;
             cam2.enabled = false;
             cam3.enabled = true;
+            
+        }
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            cam1.enabled = false;
+            cam2.enabled = false;
+            cam3.enabled = false;
+            sunCam.enabled = true;
         }
 
     }   
 
 
+
+
+
+
+
+
+
+
+
     void updateCorn()
     {
+        updateSun();
+        time = System.DateTime.Now.TimeOfDay;
+        if (time > new System.TimeSpan(23, 59, 00) && time < new System.TimeSpan(00, 01, 00))
+        {
+            resetCorn();
+            xCord = side * -1;
+            zCord = side * -1;
 
+        }
 
 
         for (int i = jobsDict.Count - 1; i >= 0; i--)
@@ -117,19 +256,45 @@ public class DataRetriever : MonoBehaviour {
             if (itemValue == "COMPLETED")
             {
                 //Debug.Log("COMPLETED");
-                plant.transform.GetComponent<Renderer>().material.color = Color.red;
+                try
+                {
+                    plant.transform.GetComponent<Renderer>().material.color = Color.red;
+                }
+                catch
+                {
+                    UnityEngine.Debug.Log("Removing Job: " + itemKey);
+                    jobsDict.Remove(itemKey);
+                }
             }
             if(itemValue == "RUNNING")
             {
                 //Debug.Log("RUNNING");
-                plant.transform.localScale += new Vector3(0, 0.01f, 0);
+                try
+                {
+                    plant.transform.localScale += new Vector3(0, 0.01f, 0);
+                }
+                catch
+                {
+                    UnityEngine.Debug.Log("Removing Job: " + itemKey);
+                    jobsDict.Remove(itemKey);
+                }
             }
         }
         generate();
 
     }
 
-    void SpawnCorn(string jobName)
+
+
+
+
+
+
+
+
+
+
+    void SpawnCorn(string jobName, float height)
     {
         
         
@@ -144,10 +309,22 @@ public class DataRetriever : MonoBehaviour {
 
             GameObject plant = Instantiate(cornPrefab, new Vector3(xCord + spacing, 0, zCord + spacing), Quaternion.identity) as GameObject;
             plant.name = jobName;
-            plant.transform.localScale += new Vector3(0, 0.02f, 0);
+            plant.transform.localScale += new Vector3(0, height, 0);
             UpdateCords();
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     void UpdateCords()
     {
@@ -165,27 +342,19 @@ public class DataRetriever : MonoBehaviour {
 
    
 
+
+
+
+
+
+
+
+
+
+
+
     void generate()
     {
-        //Process.Start("startData.bat");
-
-        //Process myProcess = new Process();
-       // try
-       // {
-            //myProcess.StartInfo.UseShellExecute = false;
-            //myProcess.StartInfo.FileName = Application.dataPath + "\\getData.bat";
-            //myProcess.StartInfo.FileName = "C:\\cygwin64\\bin\\ssh root@crane-head -i cornFieldKey > " + Application.dataPath + "\\jobs.csv";
-            //UnityEngine.Debug.Log("C:\\cygwin64\\bin\\ssh root@crane-head -i cornFieldKey > " + Application.dataPath + "\\jobs.csv");
-            //myProcess.StartInfo.CreateNoWindow = true;
-           // myProcess.Start();
-
-        //}
-        //catch
-        //{
-           // UnityEngine.Debug.Log("Error in getting data.");
-        //}
-
-
         try
         {
             var lines = File.ReadAllLines(Application.dataPath + "\\jobs.csv");
@@ -198,7 +367,7 @@ public class DataRetriever : MonoBehaviour {
                     //Debug.Log("Job added: " + line);
                     jobsDict.Add(line, "RUNNING");
 
-                    SpawnCorn(line);
+                    SpawnCorn(line, 0.02f);
                 }
                 tempDict.Add(line, "RUNNING");
 
@@ -219,10 +388,19 @@ public class DataRetriever : MonoBehaviour {
             UnityEngine.Debug.Log("Error reading file");
         }
         tempDict.Clear();
-
-
-
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     void printJobsDict()
     {
@@ -236,6 +414,26 @@ public class DataRetriever : MonoBehaviour {
             var itemValue = item.Value;
             //Debug.Log(itemKey + " --- " + itemValue);
         }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    void updateSun()
+    {
+        
+        time = System.DateTime.Now.TimeOfDay;
+        xPos = 4.1665f * (System.DateTime.Now.Hour) - 50;
+        xPos = (1 / 60) * (System.DateTime.Now.Hour);
+        sunCam.transform.LookAt(point);
+        sunCam.transform.position = new Vector3(xPos, (-0.01f * xPos + 25), -50.0f);
     }
 
 
