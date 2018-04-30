@@ -130,11 +130,17 @@ public class DataRetriever : MonoBehaviour {
     {
         jobsDict.Clear();
         tempDict.Clear();
-        xCord = side * -1;
-        zCord = side * -1;
+        xCord = 0;// side * -1;
+        zCord = 0;// side * -1;
         File.Delete(Application.dataPath + "\\respawn.csv");
         StreamWriter writer = new StreamWriter(Application.dataPath + "\\respawn.csv", true);
-        
+
+         xLimitLow = -1;
+         xLimitHigh = 1;
+         zLimitLow = -1;
+         zLimitHigh = 1;
+         currentMotion = 0;
+
         GameObject[] cornPlants = GameObject.FindGameObjectsWithTag("Corn");
         foreach (GameObject corn in cornPlants)
         {
