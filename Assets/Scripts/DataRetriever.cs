@@ -10,6 +10,7 @@ using System.Diagnostics;
 
 
 
+
 public class DataRetriever : MonoBehaviour {
 
     public GameObject cornPrefab;
@@ -27,25 +28,15 @@ public class DataRetriever : MonoBehaviour {
     private Dictionary<string, string> jobsDict = new Dictionary<string, string>();
     private Dictionary<string, string> tempDict = new Dictionary<string, string>();
     static int side = 49;
-    float xCord = side * -1;
-    float zCord = side * -1;
+    float xCord = 0;//side * -1;
+    float zCord = 0;//side * -1;
     private Vector3 point = new Vector3 (0,0,0);
     float h;
     
     
     // Use this for initialization
     void Start() {
-        /**
-        string batchPath = Application.dataPath + "\\getData.bat";
-        File.Delete(batchPath);
-        StreamWriter writer = new StreamWriter(batchPath, true);
-        writer.WriteLine("C:\\cygwin64\\bin\\ssh root@crane-head -i " + Application.dataPath + "\\cornFieldKey > " + Application.dataPath + "\\jobs.csv");
-        writer.Close();
         
-        //writer = new StreamWriter(Application.dataPath+"\\jobs.csv", true);
-        //writer.WriteLine("LIFE");
-        //writer.Close();
-        //System.Threading.Thread.Sleep(2000);**/
         respawnCorn();
         updateSun();
         sunCam.enabled = false;
@@ -166,7 +157,10 @@ public class DataRetriever : MonoBehaviour {
 
 
 
+    void spiral()
+    {
 
+    }
 
 
 
@@ -324,9 +318,57 @@ public class DataRetriever : MonoBehaviour {
 
 
 
-
+    int xLimitLow = -1;
+    int xLimitHigh = 1;
+    int zLimitLow = -1;
+    int zLimitHigh = 1;
+    int currentMotion = 0;
+    float distanceDelta = 0.5f;
 
     void UpdateCords()
+    {
+        switch (currentMotion)
+        {
+            case 0: // Go right
+                xCord = xCord + distanceDelta;
+                if (xCord >= xLimitHigh)
+                {
+                    currentMotion = 1;
+                    xLimitHigh = xLimitHigh + 1;
+                }
+                break;
+            case 1: // Go up
+                zCord = zCord + distanceDelta;
+                if (zCord >= zLimitHigh)
+                {
+                    currentMotion = 2;
+                    zLimitHigh = zLimitHigh + 1;
+                }
+                break;
+            case 2: // Go left
+                xCord = xCord - distanceDelta;
+                if (xCord <= xLimitLow)
+                {
+                    currentMotion = 3;
+                    xLimitLow = xLimitLow - 1;
+                }
+                break;
+            case 3: // Go Down
+                zCord = zCord - distanceDelta;
+                if (zCord <= zLimitLow)
+                {
+                    currentMotion = 0;
+                    zLimitLow = zLimitLow - 1;
+                }
+                break;
+            default:
+                UnityEngine.Debug.Log("Something Broke");
+                break;
+
+        }
+
+    }
+        /***
     {
         if (xCord < side)
             {
@@ -338,7 +380,7 @@ public class DataRetriever : MonoBehaviour {
                 xCord = side * -1;
             }
         
-    }
+    }***/
 
    
 
@@ -348,7 +390,7 @@ public class DataRetriever : MonoBehaviour {
 
 
 
-
+    
 
 
 
@@ -360,6 +402,9 @@ public class DataRetriever : MonoBehaviour {
             var lines = File.ReadAllLines(Application.dataPath + "\\jobs.csv");
             foreach (var line in lines)
             {
+                if (!line.Contains(':') && !string.IsNullOrEmpty(line))
+                {
+
 
                 //Debug.Log(tempStringArray[1]);
                 if (!jobsDict.ContainsKey(line))
@@ -370,18 +415,20 @@ public class DataRetriever : MonoBehaviour {
                     SpawnCorn(line, 0.02f);
                 }
                 tempDict.Add(line, "RUNNING");
-
-
             }
-            for (int i = jobsDict.Count - 1; i >= 0; i--)
-            {
-                var item = jobsDict.ElementAt(i);
-                var itemKey = item.Key;
-                if (!tempDict.ContainsKey(itemKey))
-                {
-                    jobsDict[itemKey] = "COMPLETED";
+
+
                 }
-            }
+                for (int i = jobsDict.Count - 1; i >= 0; i--)
+                {
+                    var item = jobsDict.ElementAt(i);
+                    var itemKey = item.Key;
+                    if (!tempDict.ContainsKey(itemKey))
+                    {
+                        jobsDict[itemKey] = "COMPLETED";
+                    }
+                }
+            
         }
         catch
         {

@@ -3,8 +3,7 @@
 :begin
 
 
-C:\cygwin64\bin\ssh root@crane-head -i cornFieldKey > jobs.csv
-
+bash getData.sh
 timeout /t 5
 
 goto begin
