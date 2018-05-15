@@ -163,12 +163,6 @@ public class DataRetriever : MonoBehaviour {
 
 
 
-    void spiral()
-    {
-
-    }
-
-
 
 
 
@@ -178,7 +172,9 @@ public class DataRetriever : MonoBehaviour {
 
     private void Update()
     {
-        
+        int height = 768;
+        int width = 1024;
+
         if (Input.GetKeyDown(KeyCode.R)){
             resetCorn();
            // UnityEngine.Debug.Log("Corn Reset");
@@ -217,6 +213,20 @@ public class DataRetriever : MonoBehaviour {
             cam3.enabled = false;
             sunCam.enabled = true;
         }
+        if (Input.GetKeyDown(KeyCode.F11))
+        {
+            if (!Screen.fullScreen)
+            {
+                height = Screen.height;
+                width = Screen.width;
+                Screen.SetResolution(5760, 3600, true);
+            }
+            else
+            {
+                Screen.SetResolution(width, height, false);
+            }
+        }
+
 
     }   
 
@@ -237,8 +247,8 @@ public class DataRetriever : MonoBehaviour {
         if (time > new System.TimeSpan(23, 59, 00) && time < new System.TimeSpan(00, 01, 00))
         {
             resetCorn();
-            xCord = side * -1;
-            zCord = side * -1;
+            xCord = 0;
+            zCord = 0;
 
         }
 
@@ -259,6 +269,8 @@ public class DataRetriever : MonoBehaviour {
                 try
                 {
                     plant.transform.GetComponent<Renderer>().material.color = Color.red;
+                    GameObject corn = GameObject.Find(itemKey);
+                    GameObject.Destroy(corn);
                 }
                 catch
                 {
@@ -271,7 +283,7 @@ public class DataRetriever : MonoBehaviour {
                 //Debug.Log("RUNNING");
                 try
                 {
-                    plant.transform.localScale += new Vector3(0, 0.01f, 0);
+                    plant.transform.localScale += new Vector3(0, 0.002f, 0);
                 }
                 catch
                 {
@@ -329,7 +341,7 @@ public class DataRetriever : MonoBehaviour {
     int zLimitLow = -1;
     int zLimitHigh = 1;
     int currentMotion = 0;
-    float distanceDelta = 0.5f;
+    float distanceDelta = 0.8f;
 
     void UpdateCords()
     {
@@ -432,6 +444,8 @@ public class DataRetriever : MonoBehaviour {
                     if (!tempDict.ContainsKey(itemKey))
                     {
                         jobsDict[itemKey] = "COMPLETED";
+                    GameObject corn = GameObject.Find(itemKey);
+                    GameObject.Destroy(corn);
                     }
                 }
             
