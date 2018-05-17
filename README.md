@@ -12,6 +12,10 @@ E: Respawn Corn
 
 
 Changelog:
+5/17/2018
+Added VR Version
+Corn is now used
+
 
 4/26/2018
 

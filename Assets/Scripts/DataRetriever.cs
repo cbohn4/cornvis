@@ -27,6 +27,7 @@ public class DataRetriever : MonoBehaviour {
     public int useRandom;
     private Dictionary<string, string> jobsDict = new Dictionary<string, string>();
     private Dictionary<string, string> tempDict = new Dictionary<string, string>();
+    private Dictionary<string, int> jobsTime = new Dictionary<string, int>();
     static int side = 49;
     float xCord = 0;//side * -1;
     float zCord = 0;//side * -1;
@@ -34,33 +35,43 @@ public class DataRetriever : MonoBehaviour {
     float h;
     
     
+    
     // Use this for initialization
     void Start() {
         
+        
+        //Pull jobs from respawn file
         respawnCorn();
+        //Prep "sun" and start default cameras.
         updateSun();
         sunCam.enabled = false;
         cam2.enabled = false;
         cam3.enabled = false;
         cam1.enabled = true;
-        UnityEngine.Debug.Log(Application.dataPath);
         generate();
-        //printJobsDict();
+        //Fix corn spawn locations due to potential old jobs in the respawn file.
+        resetCorn();
+        respawnCorn();
         
         
 
-
+        //Start corn tracker and orbit cam.
         InvokeRepeating("updateCorn", 5.0f, 5.0f);
         InvokeRepeating("rotation", 0.1f, 0.01f);
 
 
     }
+    
+
+    //Orbits the orbital camera around an invisible pivot
     private void rotation()
     {
         GameObject rotator = GameObject.Find("MagicalRotationalCylinder");
         rotator.transform.Rotate(0, 0.05f, 0);
     }
 
+
+    //Kills the current corn and pulls the data from the respawn file.
     void respawnCorn()
 
     {
@@ -112,20 +123,8 @@ public class DataRetriever : MonoBehaviour {
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    //Kills all corn and stores their data in the respawn file. Resets starting positions for corn.
     private void resetCorn()
     {
         jobsDict.Clear();
@@ -153,23 +152,7 @@ public class DataRetriever : MonoBehaviour {
         //respawnCorn();
     }
 
-
-    private float k;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    //Handle input from keyboard
     private void Update()
     {
         int height = 768;
@@ -231,17 +214,10 @@ public class DataRetriever : MonoBehaviour {
     }   
 
 
-
-
-
-
-
-
-
-
-
+    //Checks status of corn and  determines next state, completed or still running. If its completed, kill it with fire, make it grow if running, but dont feed it after midnight.
     void updateCorn()
     {
+        generateHeights();
         updateSun();
         time = System.DateTime.Now.TimeOfDay;
         if (time > new System.TimeSpan(23, 59, 00) && time < new System.TimeSpan(00, 01, 00))
@@ -257,42 +233,39 @@ public class DataRetriever : MonoBehaviour {
         {
             
             var item = jobsDict.ElementAt(i);
+            
             var itemKey = item.Key;
             var itemValue = item.Value;
-            //Debug.Log(itemKey + itemValue);
             GameObject plant = GameObject.Find(itemKey);
 
 
             if (itemValue == "COMPLETED")
             {
-                //Debug.Log("COMPLETED");
                 try
                 {
                     plant.transform.GetComponent<Renderer>().material.color = Color.red;
                     GameObject corn = GameObject.Find(itemKey);
                     GameObject.Destroy(corn);
                 }
-                catch
+                catch //occasional error will be a "fake" job that has no name, thus cant be destroyed above due to null value.
                 {
-                    UnityEngine.Debug.Log("Removing Job: " + itemKey);
                     jobsDict.Remove(itemKey);
                 }
             }
             if(itemValue == "RUNNING")
             {
-                //Debug.Log("RUNNING");
-                try
+                //try
                 {
-                    plant.transform.localScale += new Vector3(0, 0.002f, 0);
+                    var temp = jobsTime.ElementAt(i).Value / 15120;
+                    plant.transform.localScale = new Vector3(temp/1.333f, temp, temp/1.333f);
                 }
-                catch
+               // catch
                 {
-                    UnityEngine.Debug.Log("Removing Job: " + itemKey);
-                    jobsDict.Remove(itemKey);
+                    //jobsDict.Remove(itemKey);
                 }
             }
         }
-        generate();
+        generate();// <--- Checks for any new jobs at this point.
 
     }
 
@@ -308,10 +281,8 @@ public class DataRetriever : MonoBehaviour {
 
     void SpawnCorn(string jobName, float height)
     {
-        
-        
         {
-            k = Random.Range(kMin, kMax);
+            var k = Random.Range(kMin, kMax);
             
             
             if (useRandom == 1)
@@ -321,21 +292,15 @@ public class DataRetriever : MonoBehaviour {
 
             GameObject plant = Instantiate(cornPrefab, new Vector3(xCord + spacing, 0, zCord + spacing), Quaternion.identity) as GameObject;
             plant.name = jobName;
-            plant.transform.localScale += new Vector3(0, height, 0);
+            var temp = jobsTime[jobName] / 15120.00f;
+            plant.transform.localScale = new Vector3(temp / 1.333f, temp, temp / 1.333f);
             UpdateCords();
         }
     }
 
+    
 
-
-
-
-
-
-
-
-
-
+    // Generate spiral pattern around center
     int xLimitLow = -1;
     int xLimitHigh = 1;
     int zLimitLow = -1;
@@ -398,20 +363,86 @@ public class DataRetriever : MonoBehaviour {
                 xCord = side * -1;
             }
         
-    }***/
-
-   
+    }*/
 
 
+    //Spawn new corn and mark completed jobs.
+
+    void generateHeights()
+    {
+        int numCol = 0;
+        int numHyp = 0;
+        int numSec = 0;
+        var lines2 = File.ReadAllLines(Application.dataPath + "\\jobs.csv");
+        foreach(var line2 in lines2) {
+            if (!string.IsNullOrEmpty(line2))
+            {
+                var tempArray = line2.Split(' ');
+                //UnityEngine.Debug.Log(line2);
+                var line = tempArray[1];
+                numCol = line.Split(':').Length - 1;
+                if (numCol == 0) // SS
+                {
+                    var temp = line.Split(':');
+                    numSec = System.Int32.Parse(temp[0]);
+                }
+                else if (numCol == 1)
+                { // MM:SS
+                    var temp = line.Split(':');
+                    numSec = System.Int32.Parse(temp[0]) * 60;
+                    numSec = numSec + System.Int32.Parse(temp[1]);
+                }
+                else if (numCol == 2) // HH:MM:SS
+                {
+                    var temp = line.Split(':');
+                    numHyp = line.Split('-').Length - 1;
+                    if (numHyp == 1)
+                    {
+                        var tempHyp = line.Split('-');
+                        var tempCol = tempHyp[1].Split(':');
+
+                        numSec = System.Int32.Parse(tempHyp[0]) * 86400; // DD:XX:XX:XX
+
+
+
+                        numSec = numSec + System.Int32.Parse(tempCol[0]) * 3600; // HH
+                        numSec = numSec + System.Int32.Parse(tempCol[1]) * 60; // MM
+                        numSec = numSec + System.Int32.Parse(tempCol[2]) * 1; // SS
+
+
+                    }
+                    else
+                    {
+                        numSec = System.Int32.Parse(temp[0]) * 3600; // HH
+                        numSec = numSec + System.Int32.Parse(temp[1]) * 60; // MM
+                        numSec = numSec + System.Int32.Parse(temp[2]) * 1; // SS
+
+                    }
+
+
+
+                }
+
+
+                if (!jobsTime.ContainsKey(tempArray[0]))
+                {
+                    jobsTime.Add(tempArray[0], numSec);
+                }
+                else if (jobsTime.ContainsKey(tempArray[0]))
+                {
+                    jobsTime[tempArray[0]] = numSec;
+                }
+            }
+            
+            
 
 
 
 
+        }
+        
 
-    
-
-
-
+    }
 
     void generate()
     {
@@ -420,19 +451,19 @@ public class DataRetriever : MonoBehaviour {
             var lines = File.ReadAllLines(Application.dataPath + "\\jobs.csv");
             foreach (var line in lines)
             {
-                if (!line.Contains(':') && !string.IsNullOrEmpty(line))
+                if (line.Contains(':') && !string.IsNullOrEmpty(line))
                 {
-
+                    var tempArray = line.Split(' ');
 
                 //Debug.Log(tempStringArray[1]);
-                if (!jobsDict.ContainsKey(line))
+                if (!jobsDict.ContainsKey(tempArray[0]))
                 {
                     //Debug.Log("Job added: " + line);
-                    jobsDict.Add(line, "RUNNING");
+                    jobsDict.Add(tempArray[0], "RUNNING");
 
-                    SpawnCorn(line, 0.02f);
+                    SpawnCorn(tempArray[0], 0.02f);
                 }
-                tempDict.Add(line, "RUNNING");
+                tempDict.Add(tempArray[0], "RUNNING");
             }
 
 
@@ -459,40 +490,25 @@ public class DataRetriever : MonoBehaviour {
 
 
 
-
-
-
-
-
-
-
-
-
-
+    //Print jobs dict, DEBUGGING
     void printJobsDict()
     {
         //jobsDict.ToList().ForEach(x => Debug.Log(x.Key));
         //var t = jobsDict["12934423"][5];
         //Debug.Log(t.ToString());
-        for (int i = jobsDict.Count - 1; i >= 0; i--)
+        var tempVal = 0;
+        for (int i = jobsTime.Count - 1; i >= 0; i--)
         {
-            var item = jobsDict.ElementAt(i);
+            var item = jobsTime.ElementAt(i);
             var itemKey = item.Key;
             var itemValue = item.Value;
-            //Debug.Log(itemKey + " --- " + itemValue);
+            tempVal = tempVal + itemValue;
         }
+        UnityEngine.Debug.Log(tempVal);
+        UnityEngine.Debug.Log((jobsTime.Count));
     }
 
-    
-
-
-
-
-
-
-
-
-
+    //Update position of sun in order to create realisitc shadows, corn must be evenly cooked.
     void updateSun()
     {
         
